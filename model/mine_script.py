@@ -116,18 +116,10 @@ def right_click(x_axis, y_axis):
 
 
 def stop_script():
-    return keyboard.is_pressed('esc')  # Poți utiliza orice buton dorești aici
+    return keyboard.is_pressed('esc')
 
 
 def draw_lines(self, x, y, length):
-    """
-    Desenează două linii începând de la coordonatele (x, y) cu lungimea specificată.
-    
-    Parametri:
-    x (int): Coordonata X de pornire.
-    y (int): Coordonata Y de pornire.
-    length (int): Lungimea liniilor.
-    """
     dc = win32gui.GetDC(0)
     dcObj = win32ui.CreateDCFromHandle(dc)
     
