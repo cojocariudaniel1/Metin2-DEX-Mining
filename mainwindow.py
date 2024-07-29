@@ -2,7 +2,8 @@ import random
 import sys
 import time
 from threading import Thread
-
+import win32gui, win32ui
+from win32api import GetSystemMetrics
 import cv2
 import numpy as np
 import win32api
@@ -23,7 +24,7 @@ from model.mine_script import check_if_mining, get_image_mine_box, stop_script, 
 import pyautogui
 
 RES = 1920, 1080
-APP_RES = 400, 350
+APP_RES = 450, 450
 
 
 class MainWindow(QtWidgets.QMainWindow):
@@ -56,33 +57,33 @@ class MainWindow(QtWidgets.QMainWindow):
         background_image.setGeometry(0, 0, APP_RES[0], APP_RES[1])
 
         self.title = QLabel("DEBUG: ", self)
-        self.title.setGeometry(QRect(int(APP_RES[0] / 2 - self.title.width() - 90), 100, 400, 100))
+        self.title.setGeometry(QRect(int(APP_RES[0] / 2 - self.title.width() - 90), 160, 400, 100))
         self.title.setStyleSheet("color: white")
         self.title.setFont(QtGui.QFont("Helvetica", 18))
 
         self.timer_label = QLabel("Timer (min): ", self)
-        self.timer_label.setGeometry(QRect(10, 150, 300, 100))
+        self.timer_label.setGeometry(QRect(40, 230, 300, 100))
         self.timer_label.setStyleSheet("color: white")
         self.timer_label.setFont(QtGui.QFont("Helvetica", 18))
 
         self.input_time = QLineEdit(self)
-        self.input_time.setGeometry(QRect(150, 185, 90, 35))
+        self.input_time.setGeometry(QRect(190, 260, 90, 35))
         self.input_time.setFont(QtGui.QFont("Helvetica", 18))
         self.input_time.clearFocus()
         self.input_time.setText("720")
 
         self.timp_ramas = QLabel("Timp ramas (min): ", self)
-        self.timp_ramas.setGeometry(QRect(10, 190, 300, 100))
+        self.timp_ramas.setGeometry(QRect(40, 260, 300, 100))
         self.timp_ramas.setStyleSheet("color: white")
         self.timp_ramas.setFont(QtGui.QFont("Helvetica", 18))
 
         self.info = QLabel("Press:  SHIFT   for pause, RES: 1366x768", self)
-        self.info.setGeometry(QRect(10, 220, 370, 100))
+        self.info.setGeometry(QRect(40, 290, 370, 100))
         self.info.setStyleSheet("color: green")
         self.info.setFont(QtGui.QFont("Helvetica", 15))
 
         self.info2 = QLabel("Display scalling 100%", self)
-        self.info2.setGeometry(QRect(10, 250, 350, 100))
+        self.info2.setGeometry(QRect(40, 320, 350, 100))
         self.info2.setStyleSheet("color: green")
         self.info2.setFont(QtGui.QFont("Helvetica", 15))
 
@@ -94,8 +95,11 @@ class MainWindow(QtWidgets.QMainWindow):
         self.x_button.signal.connect(self.exit)
 
         self.buton = Button("Start", self.start_main_loop, self)
-        self.buton.setGeometry(QRect(50, 50, 280, 50))
+        self.buton.setGeometry(QRect(90, 50, 280, 50))
         self.buton.setObjectName("QButtonCustom")
+        
+        self.btn_show_lines = Button("Show lines", self.toggle_draw_lines, self)
+        self.btn_show_lines.setGeometry(QRect(90, 115, 280, 50))
 
         self.last_pos = None
 
@@ -124,6 +128,10 @@ class MainWindow(QtWidgets.QMainWindow):
             np.array(cv2.imread("imgs/m9.png")),
             np.array(cv2.imread("imgs/m10.png")),
         ]
+        
+        self.drawing_lines = False
+        self.hwnd = win32gui.WindowFromPoint((0, 0))
+        self.monitor = (0, 0, GetSystemMetrics(0), GetSystemMetrics(1))
 
     def start_main_loop(self):
         if self.main_loop_thread_run:
@@ -246,3 +254,40 @@ class MainWindow(QtWidgets.QMainWindow):
             return d[0]
     def move_cursor(self, x_axis, y_axis):
         win32api.SetCursorPos((x_axis, y_axis))
+        
+    def toggle_draw_lines(self):
+            if self.drawing_lines:
+                self.drawing_lines = False
+                self.btn_show_lines.setText("Show lines")
+            else:
+                self.drawing_lines = True
+                self.btn_show_lines.setText("Stop lines")
+                Thread(target=self.draw_lines_loop).start()
+
+    def draw_lines_loop(self):
+        app_image = image()
+        app_x, app_y = app_image[0], app_image[1]
+        while self.drawing_lines:
+            click_pos_box = [app_x + 690, app_y + 330,  6, 6]
+            self.draw_lines(click_pos_box[0], click_pos_box[1], click_pos_box[2], click_pos_box[3])
+            mine_window_pos = [app_x + 533, app_y + 288, 303, 236]
+            self.draw_lines(mine_window_pos[0], mine_window_pos[1], mine_window_pos[2], mine_window_pos[3])
+            win32gui.InvalidateRect(self.hwnd, self.monitor, True)
+
+    def draw_lines(self, x, y, length, height):
+        dc = win32gui.GetDC(0)
+
+        rc = (x, y, x + length, y + height)
+        win32gui.DrawEdge(dc, rc, win32con.EDGE_RAISED, win32con.BF_TOP)
+        
+        # Adjust the rect for vertical line
+        rc = (x, y, x + length, y + height)
+        win32gui.DrawEdge(dc, rc, win32con.EDGE_RAISED, win32con.BF_LEFT)
+        
+        # rc = (x, y, x + length, y + height)
+        # win32gui.DrawEdge(dc, rc, win32con.EDGE_RAISED, win32con.BF_RIGHT)
+        
+        # rc = (x, y, x + length, y + height)
+        # win32gui.DrawEdge(dc, rc, win32con.EDGE_RAISED, win32con.BF_BOTTOM)
+        
+        win32gui.ReleaseDC(self.hwnd, dc)

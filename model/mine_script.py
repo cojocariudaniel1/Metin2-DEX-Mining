@@ -14,7 +14,8 @@ from PIL import ImageFilter, ImageEnhance
 from model.pytesseract_model import ocr_core
 
 from model.check_image import image
-
+import win32gui, win32ui
+from win32api import GetSystemMetrics
 
 def crop_with_pil(area, img):
     img_crop = img.crop(area)
@@ -117,3 +118,29 @@ def right_click(x_axis, y_axis):
 def stop_script():
     return keyboard.is_pressed('esc')  # Poți utiliza orice buton dorești aici
 
+
+def draw_lines(self, x, y, length):
+    """
+    Desenează două linii începând de la coordonatele (x, y) cu lungimea specificată.
+    
+    Parametri:
+    x (int): Coordonata X de pornire.
+    y (int): Coordonata Y de pornire.
+    length (int): Lungimea liniilor.
+    """
+    dc = win32gui.GetDC(0)
+    dcObj = win32ui.CreateDCFromHandle(dc)
+    
+    # Set the starting point of the first line
+    dcObj.MoveTo((x, y))
+
+    # Draw the first line (horizontal)
+    dcObj.LineTo((x + length, y))
+
+    # Move to the starting point of the second line
+    dcObj.MoveTo((x + length, y))
+
+    # Draw the second line (vertical)
+    dcObj.LineTo((x + length, y + length))
+
+    win32gui.ReleaseDC(self.hwnd, dc)
